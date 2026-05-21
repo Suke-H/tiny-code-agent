@@ -1,10 +1,11 @@
 import os
 from agent import agent_loop, compact
+from google.genai import types
 
 
 def main():
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("エラー: ANTHROPIC_API_KEY が設定されていません。")
+    if not os.environ.get("GEMINI_API_KEY"):
+        print("エラー: GEMINI_API_KEY が設定されていません。")
         return
 
     print("コードエージェント起動。/compact で履歴を圧縮、/exit で終了。")
@@ -28,7 +29,7 @@ def main():
             messages = compact(messages)
             continue
 
-        messages.append({"role": "user", "content": user_input})
+        messages.append(types.Content(role="user", parts=[types.Part(text=user_input)]))
         messages = agent_loop(messages)
 
 

@@ -1,66 +1,63 @@
 import subprocess
+from google.genai import types
 
-TOOLS = [
-    {
-        "name": "read_file",
-        "description": "ファイルの内容を読む",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "読むファイルのパス"}
+TOOLS = [types.Tool(function_declarations=[
+    types.FunctionDeclaration(
+        name="read_file",
+        description="ファイルの内容を読む",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={"path": types.Schema(type=types.Type.STRING, description="読むファイルのパス")},
+            required=["path"]
+        )
+    ),
+    types.FunctionDeclaration(
+        name="write_file",
+        description="ファイルを新規作成または上書きする",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={
+                "path": types.Schema(type=types.Type.STRING),
+                "content": types.Schema(type=types.Type.STRING)
             },
-            "required": ["path"]
-        }
-    },
-    {
-        "name": "write_file",
-        "description": "ファイルを新規作成または上書きする",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string"},
-                "content": {"type": "string"}
+            required=["path", "content"]
+        )
+    ),
+    types.FunctionDeclaration(
+        name="append_file",
+        description="ファイルの末尾に追記する",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={
+                "path": types.Schema(type=types.Type.STRING),
+                "content": types.Schema(type=types.Type.STRING)
             },
-            "required": ["path", "content"]
-        }
-    },
-    {
-        "name": "append_file",
-        "description": "ファイルの末尾に追記する",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string"},
-                "content": {"type": "string"}
+            required=["path", "content"]
+        )
+    ),
+    types.FunctionDeclaration(
+        name="str_replace",
+        description="ファイル内の特定の文字列を別の文字列に置き換える。old_strはファイル内に一意に存在する必要がある",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={
+                "path": types.Schema(type=types.Type.STRING),
+                "old_str": types.Schema(type=types.Type.STRING),
+                "new_str": types.Schema(type=types.Type.STRING)
             },
-            "required": ["path", "content"]
-        }
-    },
-    {
-        "name": "str_replace",
-        "description": "ファイル内の特定の文字列を別の文字列に置き換える。old_strはファイル内に一意に存在する必要がある",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string"},
-                "old_str": {"type": "string"},
-                "new_str": {"type": "string"}
-            },
-            "required": ["path", "old_str", "new_str"]
-        }
-    },
-    {
-        "name": "run_command",
-        "description": "シェルコマンドを実行する",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string"}
-            },
-            "required": ["command"]
-        }
-    }
-]
+            required=["path", "old_str", "new_str"]
+        )
+    ),
+    types.FunctionDeclaration(
+        name="run_command",
+        description="シェルコマンドを実行する",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={"command": types.Schema(type=types.Type.STRING)},
+            required=["command"]
+        )
+    ),
+])]
 
 
 def read_file(path):
