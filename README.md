@@ -16,7 +16,7 @@ tiny-code-agent/
 ## セットアップ
 
 ```bash
-cp .env.example .env   # .env を作成し ANTHROPIC_API_KEY を記入
+cp .env.example .env   # .env を作成し GEMINI_API_KEY を記入
 uv sync
 ```
 
