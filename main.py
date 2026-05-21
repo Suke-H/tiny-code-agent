@@ -2,6 +2,7 @@ import csv
 import os
 from datetime import datetime
 from agent import agent_loop, compact
+from logger import load_from_csv
 from google.genai import types
 
 
@@ -20,7 +21,7 @@ def main():
     writer.writerow(["", "session_start", "", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     log_file.flush()
 
-    print("コードエージェント起動。/compact で履歴を圧縮、/exit で終了。")
+    print("コードエージェント起動。/compact で履歴を圧縮、/resume [path] で再開、/exit で終了。")
     messages = []
 
     while True:
@@ -40,6 +41,23 @@ def main():
             csv.writer(log_file).writerow(["", "session_end", "", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
             log_file.close()
             break
+
+        if user_input.startswith("/resume"):
+            parts = user_input.split(maxsplit=1)
+            if len(parts) == 2:
+                csv_path = parts[1]
+            else:
+                log_files = sorted(os.listdir("logs"))
+                for i, f in enumerate(log_files):
+                    print(f"  [{i}] {f}")
+                idx = input("番号を選択: ").strip()
+                csv_path = os.path.join("logs", log_files[int(idx)])
+            messages = load_from_csv(csv_path)
+            if not messages:
+                print(f"[resume] {csv_path} に復元できる履歴がありません")
+                continue
+            print(f"[resume] {csv_path} から再開")
+            continue
 
         if user_input == "/compact":
             messages = compact(messages, log_file, call_counter)

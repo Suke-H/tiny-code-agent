@@ -1,36 +1,9 @@
-import csv
 import json
 import os
 import google.genai as genai
 from google.genai import types
 from tools import TOOLS, execute_tool
-
-
-def _part_to_str(role, part):
-    if part.text:
-        return role, part.text
-    elif part.function_call:
-        args = json.dumps(dict(part.function_call.args), ensure_ascii=False)
-        return role, f"<function_call> {part.function_call.name}({args})"
-    elif part.function_response:
-        return f"{role}(tool_result)", str(part.function_response.response)
-    return None
-
-
-def _write_call(log_file, call_counter, messages, response_parts):
-    if log_file is None:
-        return
-    call_counter[0] += 1
-    n = call_counter[0]
-    writer = csv.writer(log_file)
-    for m in messages:
-        for part in m.parts:
-            row = _part_to_str(m.role, part)
-            if row:
-                writer.writerow([n, "input", row[0], row[1]])
-    for role, content in response_parts:
-        writer.writerow([n, "output", role, content])
-    log_file.flush()
+from logger import _part_to_str, write_call
 
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
@@ -64,7 +37,7 @@ def compact(messages, log_file=None, call_counter=None):
         contents=compact_input,
     )
     summary = response.text
-    _write_call(log_file, call_counter, compact_input, [("model", summary)])
+    write_call(log_file, call_counter, compact_input, [("model", summary)])
     print(f"\n[compact] 履歴を要約しました（{len(messages)}メッセージ → 1メッセージ）\n")
 
     return [
@@ -91,7 +64,7 @@ def agent_loop(messages, log_file=None, call_counter=None):
             row = _part_to_str("model", part)
             if row:
                 output_parts.append(row)
-        _write_call(log_file, call_counter, messages, output_parts)
+        write_call(log_file, call_counter, messages, output_parts)
 
         messages.append(candidate.content)
 
