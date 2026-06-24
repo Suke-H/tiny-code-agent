@@ -18,9 +18,10 @@ practice/配下でマルバツゲームをpythonで作ってほしいです。�
 
 ```
 tiny-code-agent/
-├── main.py        # エントリーポイント（REPL ループ）
-├── agent.py       # エージェントループ・履歴圧縮
-└── tools.py       # ツール定義・実装
+├── main.py        # 実行
+├── agent.py       # エージェントループ
+├── tools.py       # ツール定義
+└── logger.py      # 会話ログ出力（`/resume`に使用）
 ```
 
 ## セットアップ
@@ -42,3 +43,11 @@ uv run --env-file .env python main.py
 |---------|------|
 | `/compact` | 会話履歴を要約して圧縮 |
 | `/exit` | 終了 |
+
+## AIが使用するツール
+
+- read_file(path): ファイルを読む
+- write_file(path, content): ファイルを一括作成（上書き）
+- append_file(path, content): ファイルに追記
+- str_replace(path, old_str, new_str): ファイル内の文字列を置換（old_strはファイル内に一意に存在する必要がある）
+- run_code(code): Pythonコードを実行

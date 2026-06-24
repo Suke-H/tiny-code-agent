@@ -10,7 +10,7 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 MODEL = "gemini-2.5-flash"
 SYSTEM = """あなたはコードエージェントです。以下のツールが使えます：
 - read_file(path): ファイルを読む
-- write_file(path, content): ファイルを作成・上書き
+- write_file(path, content): ファイルを一括作成（上書き）
 - append_file(path, content): ファイルに追記
 - str_replace(path, old_str, new_str): ファイル内の文字列を置換（old_strはファイル内に一意に存在する必要がある）
 - run_code(code): Pythonコードを実行
