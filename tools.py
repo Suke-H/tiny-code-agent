@@ -26,8 +26,8 @@ def str_replace(path, old_str, new_str):
         f.write(text)
     return "success"
 
-def run_command(command):
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+def run_code(code):
+    result = subprocess.run(["uv", "run", "python", "-c", code], capture_output=True, text=True)
     return result.stdout + result.stderr
 
 
@@ -40,7 +40,7 @@ def execute_tool(name, inputs):
         return append_file(inputs["path"], inputs["content"])
     elif name == "str_replace":
         return str_replace(inputs["path"], inputs["old_str"], inputs["new_str"])
-    elif name == "run_command":
-        return run_command(inputs["command"])
+    elif name == "run_code":
+        return run_code(inputs["code"])
     else:
         return f"error: unknown tool {name}"

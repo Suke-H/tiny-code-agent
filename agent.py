@@ -13,7 +13,7 @@ SYSTEM = """あなたはコードエージェントです。以下のツール�
 - write_file(path, content): ファイルを作成・上書き
 - append_file(path, content): ファイルに追記
 - str_replace(path, old_str, new_str): ファイル内の文字列を置換（old_strはファイル内に一意に存在する必要がある）
-- run_command(command): シェルコマンドを実行
+- run_code(code): Pythonコードを実行
 
 タスクが完了したら type=terminate で result に最終回答を入れてください。"""
 
