@@ -2,13 +2,32 @@ import json
 import os
 import google.genai as genai
 from google.genai import types
-from tools import TOOLS, execute_tool
+from tools import execute_tool
 from logger import _part_to_str, write_call
 
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 MODEL = "gemini-2.5-flash"
-SYSTEM = "あなたはコードエージェントです。ファイル操作やコマンド実行を通じてタスクを完了してください。"
+SYSTEM = """あなたはコードエージェントです。以下のツールが使えます：
+- read_file(path): ファイルを読む
+- write_file(path, content): ファイルを作成・上書き
+- append_file(path, content): ファイルに追記
+- str_replace(path, old_str, new_str): ファイル内の文字列を置換（old_strはファイル内に一意に存在する必要がある）
+- run_command(command): シェルコマンドを実行
+
+タスクが完了したら type=terminate で result に最終回答を入れてください。"""
+
+
+AGENT_ACTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type":   {"type": "string", "enum": ["tool_call", "terminate"]},
+        "name":   {"type": "string"},
+        "args":   {"type": "object", "additionalProperties": {}},
+        "result": {"type": "string"},
+    },
+    "required": ["type"],
+}
 
 
 def _messages_to_text(messages):
@@ -17,10 +36,6 @@ def _messages_to_text(messages):
         for part in m.parts:
             if part.text:
                 lines.append(f"[{m.role}]: {part.text}")
-            elif part.function_call:
-                lines.append(f"[tool_call]: {part.function_call.name}({dict(part.function_call.args)})")
-            elif part.function_response:
-                lines.append(f"[tool_result]: {part.function_response.response}")
     return "\n".join(lines)
 
 
@@ -53,41 +68,26 @@ def agent_loop(messages, log_file=None, call_counter=None):
             contents=messages,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM,
-                tools=TOOLS,
+                response_json_schema=AGENT_ACTION_SCHEMA,
+                response_mime_type="application/json",
             )
         )
 
-        candidate = response.candidates[0]
+        action = json.loads(response.text)
+        model_content = types.Content(role="model", parts=[types.Part(text=response.text)])
 
-        output_parts = []
-        for part in candidate.content.parts:
-            row = _part_to_str("model", part)
-            if row:
-                output_parts.append(row)
-        write_call(log_file, call_counter, messages, output_parts)
+        write_call(log_file, call_counter, messages, [("model", response.text)])
+        messages.append(model_content)
 
-        messages.append(candidate.content)
-
-        has_function_call = any(p.function_call for p in candidate.content.parts)
-
-        if not has_function_call:
-            print(f"\nAssistant: {response.text}")
+        if action["type"] == "terminate":
+            print(f"\nAssistant: {action['result']}")
             break
 
-        function_responses = []
-        for part in candidate.content.parts:
-            if part.function_call:
-                fc = part.function_call
-                args = dict(fc.args)
-                print(f"[tool] {fc.name}({json.dumps(args, ensure_ascii=False)})")
-                result = execute_tool(fc.name, args)
-                function_responses.append(types.Part(
-                    function_response=types.FunctionResponse(
-                        name=fc.name,
-                        response={"result": result}
-                    )
-                ))
-
-        messages.append(types.Content(role="user", parts=function_responses))
+        args = action.get("args") or {}
+        print(f"[tool] {action['name']}({json.dumps(args, ensure_ascii=False)})")
+        result = execute_tool(action["name"], args)
+        messages.append(types.Content(role="user", parts=[types.Part(
+            text=f"[tool_result] {action['name']}: {result}"
+        )]))
 
     return messages

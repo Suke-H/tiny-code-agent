@@ -1,15 +1,10 @@
-import csv, json, re
+import csv, json
 from google.genai import types
 
 
 def _part_to_str(role, part):
     if part.text:
         return role, part.text
-    elif part.function_call:
-        args = json.dumps(dict(part.function_call.args), ensure_ascii=False)
-        return role, f"<function_call> {part.function_call.name}({args})"
-    elif part.function_response:
-        return f"{role}(tool_result:{part.function_response.name})", str(part.function_response.response)
     return None
 
 
@@ -43,22 +38,7 @@ def load_from_csv(csv_path):
 
     messages = []
     for row in input_rows:
-        role = row["role"]
-        content = row["content"]
-        api_role = "user" if role.startswith("user") else "model"
-
-        if role.startswith("user(tool_result:"):
-            fn_name = role[len("user(tool_result:"):-1]
-            messages.append(types.Content(role="user", parts=[types.Part(
-                function_response=types.FunctionResponse(name=fn_name, response={"result": content})
-            )]))
-        elif content.startswith("<function_call>"):
-            m = re.match(r"<function_call> (\w+)\((.+)\)$", content, re.DOTALL)
-            name, args = m.group(1), json.loads(m.group(2))
-            messages.append(types.Content(role="model", parts=[types.Part(
-                function_call=types.FunctionCall(name=name, args=args)
-            )]))
-        else:
-            messages.append(types.Content(role=api_role, parts=[types.Part(text=content)]))
+        api_role = "user" if row["role"] == "user" else "model"
+        messages.append(types.Content(role=api_role, parts=[types.Part(text=row["content"])]))
 
     return messages
